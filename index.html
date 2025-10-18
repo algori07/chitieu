@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tính toán Chi tiêu (Lưu trữ Cục bộ)</title>
     <style>
-        /* CSS không thay đổi, vẫn giữ nguyên như trước */
         :root {
             --primary-color: #007bff;
             --secondary-color: #f8f9fa;
@@ -79,6 +78,14 @@
             height: 250px;
             resize: vertical;
         }
+        
+        #rawDataOutput {
+             height: 150px;
+             resize: vertical;
+             background-color: #2d3748;
+             color: #a0aec0;
+             font-family: "Courier New", Courier, monospace;
+        }
 
         button {
             width: 100%;
@@ -102,7 +109,7 @@
         }
 
         #ketqua {
-            margin-top: 25px;
+            margin-top: 5px;
             padding: 20px;
             background-color: var(--secondary-color);
             border: 1px solid var(--border-color);
@@ -138,8 +145,8 @@
         </div>
 
         <div>
-            <label for="nguoiTrungGian">Người trung gian (để trống để tự động chọn):</label>
-            <input type="text" id="nguoiTrungGian" placeholder="Ví dụ: an (tên viết tắt)" style="margin-bottom: 20px;">
+            <label for="nguoiTrungGian">Người trung gian (nhập nickname):</label>
+            <input type="text" id="nguoiTrungGian" placeholder="Ví dụ: an (để trống để tự động chọn)" style="margin-bottom: 20px;">
         </div>
 
         <button onclick="tinhToan()">Tính toán và Xuất kết quả</button>
@@ -148,40 +155,36 @@
             <label for="ketqua" style="margin-top: 20px;">Kết quả:</label>
             <div id="ketqua">Kết quả thanh toán sẽ hiển thị ở đây...</div>
         </div>
+
+        <div>
+            <label for="rawDataOutput" style="margin-top: 20px;">Dữ liệu thô:</label>
+            <textarea id="rawDataOutput" readonly placeholder="Dữ liệu thô sẽ hiển thị ở đây..."></textarea>
+        </div>
     </div>
 
     <script>
-        // --- PHẦN MÃ MỚI ĐỂ LƯU VÀ TẢI DỮ LIỆU ---
-
-        // Định nghĩa các key để lưu vào localStorage
         const EXPENSE_STORAGE_KEY = 'expenseInputData';
         const NICKNAME_STORAGE_KEY = 'nicknameInputData';
 
-        // Lấy các element cần thao tác
         const expenseTextarea = document.getElementById('inputData');
         const nicknameTextarea = document.getElementById('nicknameData');
 
-        // 1. Tải dữ liệu khi trang được mở
         document.addEventListener('DOMContentLoaded', () => {
-            // Tải dữ liệu chi tiêu đã lưu
             const savedExpenses = localStorage.getItem(EXPENSE_STORAGE_KEY);
             if (savedExpenses) {
                 expenseTextarea.value = savedExpenses;
             }
 
-            // Tải dữ liệu nickname đã lưu
             const savedNicknames = localStorage.getItem(NICKNAME_STORAGE_KEY);
             if (savedNicknames) {
                 nicknameTextarea.value = savedNicknames;
             } else {
-                // Nếu chưa có gì, điền dữ liệu mặc định và lưu lại
                 const defaultNicknames = `an: An\nkh: Khanh\nph: Phuoc\naqa: AnhQuocAnh\nd: Dai\nam: AnhManh`;
                 nicknameTextarea.value = defaultNicknames;
                 localStorage.setItem(NICKNAME_STORAGE_KEY, defaultNicknames);
             }
         });
 
-        // 2. Lưu dữ liệu mỗi khi người dùng gõ
         expenseTextarea.addEventListener('input', () => {
             localStorage.setItem(EXPENSE_STORAGE_KEY, expenseTextarea.value);
         });
@@ -190,25 +193,28 @@
             localStorage.setItem(NICKNAME_STORAGE_KEY, nicknameTextarea.value);
         });
 
-
-        // --- PHẦN HÀM TÍNH TOÁN (KHÔNG THAY ĐỔI) ---
         function tinhToan() {
             const nicknameData = nicknameTextarea.value;
-            const nickname = {};
+            const nicknameMap = {};
+            
             nicknameData.trim().split('\n').forEach(line => {
                 const parts = line.split(':');
                 if (parts.length === 2) {
                     const key = parts[0].trim();
                     const value = parts[1].trim();
-                    if (key) nickname[key] = value;
+                    if (key) {
+                        nicknameMap[key] = value;
+                    }
                 }
             });
 
             const inp = expenseTextarea.value;
             const balances = {};
             const outputElement = document.getElementById('ketqua');
+            const rawDataOutput = document.getElementById('rawDataOutput');
             
             outputElement.innerHTML = '';
+            rawDataOutput.value = '';
 
             const lines = inp.trim().split('\n');
 
@@ -216,66 +222,77 @@
                 if (line.trim() === '') continue;
 
                 const words = line.trim().split(/\s+/);
-                const arr = words.map(word => nickname[word] || word);
 
-                if (arr.length < 3 || isNaN(parseFloat(arr[1]))) {
+                if (words.length < 3 || isNaN(parseFloat(words[1]))) {
                     continue;
                 }
+                
+                const payerNick = words[0];
+                const amount = parseFloat(words[1]);
+                const participantNicks = words.slice(2);
+                const share = amount / participantNicks.length;
 
-                const payer = arr[0];
-                const amount = parseFloat(arr[1]);
-                const participants = arr.slice(2);
-                const share = amount / participants.length;
-
-                if (!balances[payer]) balances[payer] = 0;
-                participants.forEach(p => {
-                    if (!balances[p]) balances[p] = 0;
+                if (!balances[payerNick]) balances[payerNick] = 0;
+                participantNicks.forEach(pNick => {
+                    if (!balances[pNick]) balances[pNick] = 0;
                 });
                 
-                balances[payer] -= amount;
-                participants.forEach(p => {
-                    balances[p] += share;
+                balances[payerNick] -= amount;
+                participantNicks.forEach(pNick => {
+                    balances[pNick] += share;
                 });
             }
 
-            let defaultNtg = "";
+            let defaultNtgNick = "";
             let minBalance = Infinity;
-            for (const person in balances) {
-                if (balances[person] < minBalance) {
-                    minBalance = balances[person];
-                    defaultNtg = person;
+            for (const personNick in balances) {
+                if (balances[personNick] < minBalance) {
+                    minBalance = balances[personNick];
+                    defaultNtgNick = personNick;
                 }
             }
 
             let ntgInput = document.getElementById('nguoiTrungGian').value.trim();
-            let ntg = ntgInput ? (nickname[ntgInput] || ntgInput) : defaultNtg;
+            let ntgNick = ntgInput || defaultNtgNick;
             
             if (Object.keys(balances).length === 0) {
                 outputElement.textContent = "Không có dữ liệu hợp lệ để tính toán.";
                 return;
             }
             
-            if (ntg && !balances.hasOwnProperty(ntg)) {
-                outputElement.textContent = `Người trung gian "${ntg}" không tồn tại trong danh sách chi tiêu. Vui lòng chọn người khác.`;
+            if (ntgNick && !balances.hasOwnProperty(ntgNick)) {
+                outputElement.textContent = `Người trung gian "${ntgNick}" không tồn tại trong danh sách chi tiêu. Vui lòng chọn người khác.`;
                 return;
             }
 
-            let output = `Người trung gian được chọn: ${ntg}\n`;
+            const ntgFullName = nicknameMap[ntgNick] || ntgNick;
+            let output = `Người trung gian được chọn: ${ntgFullName}\n`;
             output += "------------------------------------\n";
+            let rawOutput = '';
             let hasTransaction = false;
             
-            for (const person in balances) {
-                if (person === ntg) continue;
-                if (balances[person] > 0) {
-                    output += `${person} chuyển cho ${ntg}: ${Math.round(balances[person])}\n`;
+            for (const personNick in balances) {
+                if (personNick === ntgNick) continue;
+                
+                const personFullName = nicknameMap[personNick] || personNick;
+
+                if (balances[personNick] > 0) {
+                    const amount = Math.round(balances[personNick]);
+                    output += `${personFullName} chuyển cho ${ntgFullName}: ${amount}\n`;
+                    rawOutput += `${ntgNick} ${amount} ${personNick}\n`;
                     hasTransaction = true;
                 }
             }
             
-            for (const person in balances) {
-                if (person === ntg) continue;
-                if (balances[person] < 0) {
-                    output += `${ntg} chuyển cho ${person}: ${Math.round(-balances[person])}\n`;
+            for (const personNick in balances) {
+                if (personNick === ntgNick) continue;
+
+                const personFullName = nicknameMap[personNick] || personNick;
+                
+                if (balances[personNick] < 0) {
+                    const amount = Math.round(-balances[personNick]);
+                    output += `${ntgFullName} chuyển cho ${personFullName}: ${amount}\n`;
+                    rawOutput += `${personNick} ${amount} ${ntgNick}\n`;
                     hasTransaction = true;
                 }
             }
@@ -285,8 +302,10 @@
             }
 
             outputElement.textContent = output;
+            rawDataOutput.value = rawOutput.trim();
         }
     </script>
 
 </body>
 </html>
+
