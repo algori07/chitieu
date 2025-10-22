@@ -276,8 +276,8 @@
                 
                 const personFullName = nicknameMap[personNick] || personNick;
 
-                if (balances[personNick] > 0) {
-                    const amount = Math.round(balances[personNick]);
+                const amount = Math.round(balances[personNick]);
+                if (amount > 0) {
                     output += `${personFullName} chuyển cho ${ntgFullName}: ${amount}\n`;
                     rawOutput += `${ntgNick} ${amount} ${personNick}\n`;
                     hasTransaction = true;
@@ -289,8 +289,8 @@
 
                 const personFullName = nicknameMap[personNick] || personNick;
                 
-                if (balances[personNick] < 0) {
-                    const amount = Math.round(-balances[personNick]);
+                const amount = Math.round(-balances[personNick]);
+                if (amount > 0) {
                     output += `${ntgFullName} chuyển cho ${personFullName}: ${amount}\n`;
                     rawOutput += `${personNick} ${amount} ${ntgNick}\n`;
                     hasTransaction = true;
