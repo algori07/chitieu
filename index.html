@@ -219,14 +219,14 @@
             const lines = inp.trim().split('\n');
 
             for (const line of lines) {
-                if (line.trim() === '') continue;
+                let cleanLine = line.split('#')[0].trim();
+                if (cleanLine === '') continue;
 
-                const words = line.trim().split(/\s+/);
-
+                const words = cleanLine.split(/\s+/);
                 if (words.length < 3 || isNaN(parseFloat(words[1]))) {
                     continue;
                 }
-                
+
                 const payerNick = words[0];
                 const amount = parseFloat(words[1]);
                 const participantNicks = words.slice(2);
@@ -236,7 +236,7 @@
                 participantNicks.forEach(pNick => {
                     if (!balances[pNick]) balances[pNick] = 0;
                 });
-                
+
                 balances[payerNick] -= amount;
                 participantNicks.forEach(pNick => {
                     balances[pNick] += share;
